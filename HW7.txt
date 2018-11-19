@@ -1,0 +1,117 @@
+/*
+ * main.C
+ *
+ *  Created on: Oct 25, 2018
+ *      Author: Colin Nguyen
+ *      nguye207@purdue.edu
+ */
+
+#include "stm32f0xx.h"
+#include "stm32f0_discovery.h"
+#include <string.h>
+
+#define SCL 1
+#define SDI 2
+#define SS 4
+#define SPI_DELAY 400
+
+void tim1_init(void);
+void tim2_init(void);
+void nano_wait(int t);
+
+int main(void)
+{
+	tim1_init();
+	tim2_init();
+	for (;;);
+	//while(1) asm(“wfi”);
+	return 0;
+}
+
+void tim1_init(void)
+{
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN | RCC_AHBENR_GPIOCEN;
+
+	// initialize PA8, PA9, PA10 as GPIO outputs and set their outputs to zero
+	GPIOA->MODER &= ~0x3f0000;
+	GPIOA->MODER |= 0x2a0000;
+
+	GPIOA->AFR[1] &= ~0xf;
+	GPIOA->AFR[1] |= 0x222;
+
+	RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
+
+    TIM1->PSC = 8-1;
+    TIM1->ARR = 60000-1;
+
+    // initialize CCRx values
+    TIM1->CCR1 = 600;
+    TIM1->CCR2 = 600;
+    TIM1->CCR3 = 600;
+
+    // configure the channels
+    TIM1->CCMR1 |=  TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1PE;
+    TIM1->CCMR1 |=  TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2PE;
+    TIM1->CCMR2 |=  TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3M_1 | TIM_CCMR2_OC3PE;
+
+    // initialize pins for TIM1_CH1, TIM1_CH2, TIM1_CH3
+    TIM1->CCER |= TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E;
+
+    TIM1->BDTR |= TIM_BDTR_MOE;
+    TIM1->CR1 |= TIM_CR1_CEN;
+}
+
+void tim2_init(void)
+{
+	// enable the system clock for timer 2
+	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+
+	// set PSC and ARR
+	TIM2->PSC = 4800 - 1;
+	TIM2->ARR = 100 - 1;
+
+	// initialize channel 1
+	TIM2->CCMR1 &= ~TIM_CCMR1_CC1S;
+	TIM2->CCMR1 |= TIM_CCMR1_CC1S_0;
+	TIM2->CCMR1 &= ~TIM_CCMR1_IC1F;
+	TIM2->CCMR1 &= ~TIM_CCMR1_IC1PSC;
+
+	// enable & setup other registers
+	TIM2->CCER &= ~(TIM_CCER_CC1P|TIM_CCER_CC1NP);
+	TIM2->CCER |= (TIM_CCER_CC1E);
+	TIM2->DIER |= (TIM_DIER_CC1IE) | TIM_DIER_UIE;
+
+	TIM2->CR1 |= TIM_CR1_CEN;
+	NVIC->ISER[0] = 1 << TIM2_IRQn;
+}
+
+void TIM2_IRQHandler(void)
+{
+	float new1;
+	float new2;
+	float new3;
+
+
+
+	TIM1->SR &= ~TIM_SR_UIF;
+
+
+	new1 = TIM1->CCR1 * 1.02;
+	new2 = TIM1->CCR2 * 1.02;
+	new3 = TIM1->CCR3 * 1.02;
+
+	if (new1 || new2 || new3 <= TIM1->ARR)
+	{
+		TIM1->CCR1 = new1;
+		TIM1->CCR2 = new2;
+		TIM1->CCR3 = new3;
+	}
+	else
+	{
+	    TIM1->CCR1 = 600;
+	    TIM1->CCR2 = 600;
+	    TIM1->CCR3 = 600;
+	}
+
+}
+
