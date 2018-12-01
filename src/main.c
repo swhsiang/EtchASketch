@@ -16,6 +16,12 @@
 #include "stm32f0xx.h"
 #include "stm32f0_discovery.h"
 
+#include "display.h"
+#ifndef pgm_read_byte
+ #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
+#endif
+
+
 // RD: PB4
 // WR: PB5
 // C\D: PB6
@@ -24,30 +30,14 @@
 void lcd_control_gpio_init(void) {
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;	// enable GPIOB
 	// init PB4 ~ PA8
-	GPIOB->MODER &= ~(GPIO_MODER_MODER0 | GPIO_MODER_MODER1 | GPIO_MODER_MODER2
-				| GPIO_MODER_MODER3 | GPIO_MODER_MODER4 | GPIO_MODER_MODER5 | GPIO_MODER_MODER6
-				| GPIO_MODER_MODER7);
+	GPIOB->MODER &= ~( GPIO_MODER_MODER4 | GPIO_MODER_MODER5 | GPIO_MODER_MODER6| GPIO_MODER_MODER7 | GPIO_MODER_MODER8);
 
 	// set PB4 ~ PB7 to output mode
-	GPIOB->MODER |= GPIO_MODER_MODER4_0 | GPIO_MODER_MODER5_0 | GPIO_MODER_MODER6_0 | GPIO_MODER_MODER7_0;
-}
-
-// display
-void display_gpio_init(void) {
-	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;	// enable GPIOA
-	// init PA0 ~ PA7
-	GPIOA->MODER &= ~(GPIO_MODER_MODER0 | GPIO_MODER_MODER1 | GPIO_MODER_MODER2
-			| GPIO_MODER_MODER3 | GPIO_MODER_MODER4 | GPIO_MODER_MODER5 | GPIO_MODER_MODER6
-			| GPIO_MODER_MODER7);
-
-	// set PB0 ~ PB7 to output mode
-	GPIOA->MODER |= GPIO_MODER_MODER0_0 | GPIO_MODER_MODER1_0 | GPIO_MODER_MODER2_0
-			| GPIO_MODER_MODER3_0 | GPIO_MODER_MODER4_0 | GPIO_MODER_MODER5_0
-			| GPIO_MODER_MODER6_0 | GPIO_MODER_MODER7_0;
+	GPIOB->MODER |= GPIO_MODER_MODER4_0 | GPIO_MODER_MODER5_0 | GPIO_MODER_MODER6_0 | GPIO_MODER_MODER7_0 | GPIO_MODER_MODER8_0;
 }
 
 // ADC
-void adc_init(void) {
+void adc_clock_init() {
 	// enable clock to ADC unit
 	RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
 	// turn on hi-spd internal 14 MHz clock
@@ -63,15 +53,21 @@ void adc_init(void) {
 }
 
 // PB0 and PB1 for analog input
-void adc_gpio_init(void) {
+void adc_gpio_init() {
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;	// enable GPIOA
-	// init PA0
+	// init PB0
 	GPIOB->MODER &= ~(GPIO_MODER_MODER0 | GPIO_MODER_MODER1);
-	// set PA0 analog mode
+	// set PB0 analog mode
 	GPIOB->MODER |= GPIO_MODER_MODER0 | GPIO_MODER_MODER1;
 
 	ADC1->CHSELR = 0;	// unselect all ADC channels
 }
+
+void adc_init() {
+	adc_clock_init();
+	adc_gpio_init();
+}
+
 
 uint32_t read_adc_channel(unsigned channel) {
 	// unselect all ADC channels
@@ -83,51 +79,97 @@ uint32_t read_adc_channel(unsigned channel) {
 }
 
 
+// display
+void display_gpio_init(void) {
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;	// enable GPIOA
+	// init PA0 ~ PA7
+	GPIOA->MODER &= ~(GPIO_MODER_MODER0 | GPIO_MODER_MODER1 | GPIO_MODER_MODER2
+			| GPIO_MODER_MODER3 | GPIO_MODER_MODER4 | GPIO_MODER_MODER5 | GPIO_MODER_MODER6
+			| GPIO_MODER_MODER7);
+
+	// set PA0 ~ PA7 to output mode
+	GPIOA->MODER |= GPIO_MODER_MODER0_0 | GPIO_MODER_MODER1_0 | GPIO_MODER_MODER2_0
+			| GPIO_MODER_MODER3_0 | GPIO_MODER_MODER4_0 | GPIO_MODER_MODER5_0
+			| GPIO_MODER_MODER6_0 | GPIO_MODER_MODER7_0;
+}
+
+
 // RD: PB4
 // WR: PB5
-// C\D: PB6
+// C\D: PB6 (command / data )
 // CS: PB7
 // RST: PB8
-void enable_normal_display() {
-	// control
-	GPIOB->BSRR |= GPIO_BSRR_BR_6 | GPIO_BSRR_BS_4 |  GPIO_BSRR_BS_5 | GPIO_BSRR_BS_7;
-
-	// command
-	GPIOA->BSRR |= GPIO_BSRR_BS_0 | GPIO_BSRR_BS_1 | GPIO_BSRR_BR_2 | GPIO_BSRR_BR_3
-			| GPIO_BSRR_BS_4 | GPIO_BSRR_BR_5 | GPIO_BSRR_BR_6 | GPIO_BSRR_BR_7;
-}
-
-void write_command(uint32_t hex_num) {
-	uint32_t command = 0x00;
-	int shift = 0;
-	int index = 1 << shift;
-
-
-	while (shift <= 7) {
-		if ((hex_num & (1 << shift) ) == index) {
-				command |= GPIO_BSRR_BS_0 << shift;
+uint32_t write_process(uint8_t data) {
+	uint32_t dataline = 0;
+	uint32_t shift = 7;
+	for (uint8_t bit = 0x80; bit; bit >>= 1) {
+		if((data) & bit) {
+			dataline |= GPIO_BSRR_BS_0 << shift;
 		} else {
-				command |= GPIO_BSRR_BR_0 << shift;
+			dataline |= GPIO_BSRR_BR_0 << shift;
 		}
-		shift++;
-		index = index << shift;
+		shift--;
 	}
 
-	GPIOA->BSRR |= command;
+	return dataline;
 }
 
-void enable_display() {
-	// control
-	GPIOB->BSRR |= GPIO_BSRR_BR_6 | GPIO_BSRR_BS_4 |  GPIO_BSRR_BS_5 | GPIO_BSRR_BS_7;
-	write_command(0x29);
+
+// 400 is a magic number!!!!!
+#define PARALLEL_DELAY 40000000
+#define WRITE_DELAY    10000000
+
+void write_command(uint32_t cmd) {
+	// min: 15 ns
+	GPIOA->BSRR |= write_process(cmd);
+	// 0:command is selected (PB6)
+	GPIOB->BSRR |= GPIO_BSRR_BR_5 | GPIO_BSRR_BR_6| GPIO_BSRR_BR_7;
+	nano_wait( PARALLEL_DELAY );
+
+
+	// min: 15 ns, hold time
+	GPIOB->BSRR |= GPIO_BSRR_BS_5;
+	nano_wait( PARALLEL_DELAY );
 }
 
+void write_data(uint32_t data) {
+	// min: 15 ns
+	GPIOA->BSRR |= write_process(data);
+	// 1: data is selected (PB6)
+	GPIOB->BSRR |= GPIO_BSRR_BR_5 | GPIO_BSRR_BS_6| GPIO_BSRR_BR_7;
+	nano_wait( PARALLEL_DELAY );
+
+	// min: 15 ns, hold time
+	GPIOB->BSRR |= GPIO_BSRR_BS_5;
+	nano_wait( PARALLEL_DELAY );
+}
+
+
+void display_init() {
+    uint8_t        cmd, x, numArgs;
+    const uint8_t *addr = initcmd;
+    while((cmd = pgm_read_byte(addr++)) > 0) {
+        //writeCommand(cmd);
+    	write_command(cmd);
+        x       = pgm_read_byte(addr++);
+        numArgs = x & 0x7F;
+        while(numArgs--) {
+        	//spiWrite(pgm_read_byte(addr++));
+        	write_data(pgm_read_byte(addr++));
+        	nano_wait(WRITE_DELAY);
+        }
+        nano_wait(WRITE_DELAY);
+        //if(x & 0x80) {
+        //	nano_wait(120 * 1000 * 1000);
+        //}
+    }
+}
 
 int main(void)
 {
+	//adc_init();
 	lcd_control_gpio_init();
 	display_gpio_init();
-	enable_display();
-	enable_normal_display();
+	display_init();
 	for(;;);
 }
