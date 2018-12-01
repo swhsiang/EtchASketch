@@ -112,3 +112,58 @@ static const uint8_t initcmd[] = {
   0x00                                   // End of list
 };
 
+// https://github.com/iwalpola/Adafruit_ILI9341_8bit_STM/blob/18484dd31837a58a6ecef1315df34e41f26c199d/Adafruit_ILI9341_8bit_STM/Adafruit_ILI9341_8bit_STM.h
+
+// RD: PB4
+// WR: PB5
+// C\D: PB6
+// CS: PB7
+// RST: PB8
+
+
+//Port data |D7 |D6 |D5 |D4 |D3 |D2 |D1 |D0 |
+//Pin stm32 |PA7|PA6|PA5|PA4|PA3|PA2|PC1|PA0|
+//Control pins |RD |WR |RS |CS |RST|
+//Pin stm32    |PB4|PB5|PB6|PB7|PB8|
+#define TFT_CNTRL      GPIOB
+#define TFT_DATA       GPIOA
+/*
+#define TFT_RD         PB4
+#define TFT_WR         PB5
+#define TFT_RS         PB6
+#define TFT_CS         PB7
+#define TFT_RST        PB8
+*/
+/*
+#define TFT_RD_MASK    digitalPinToBitMask(TFT_RD)
+#define TFT_WR_MASK    digitalPinToBitMask(TFT_WR)
+#define TFT_RS_MASK    digitalPinToBitMask(TFT_RS)
+#define TFT_CS_MASK    digitalPinToBitMask(TFT_CS)
+*/
+
+
+#define TFT_RD_MASK    1 << 4
+#define TFT_WR_MASK    1 << 5
+#define TFT_RS_MASK    1 << 6
+#define TFT_CS_MASK    1 << 7
+
+
+#define RD_ACTIVE    TFT_CNTRL->BRR  = TFT_RD_MASK
+#define RD_IDLE      TFT_CNTRL->BSRR = TFT_RD_MASK
+#define WR_ACTIVE    TFT_CNTRL->BRR  = TFT_WR_MASK
+#define WR_IDLE      TFT_CNTRL->BSRR = TFT_WR_MASK
+#define CD_COMMAND   TFT_CNTRL->BRR  = TFT_RS_MASK
+#define CD_DATA      TFT_CNTRL->BSRR = TFT_RS_MASK
+#define CS_ACTIVE    TFT_CNTRL->BRR  = TFT_CS_MASK
+#define CS_IDLE      TFT_CNTRL->BSRR  = TFT_CS_MASK
+
+#ifndef RD_STROBE
+ #define RD_STROBE  {RD_ACTIVE; RD_IDLE;}
+#endif
+#define WR_STROBE { WR_ACTIVE; WR_IDLE; }
+#define swap(a, b) { int16_t t = a; a = b; b = t; }
+
+//Set pins to the 8 bit number
+#define write8special(c) { TFT_DATA->BSRR = ((~c)<<16) | (c); WR_STROBE; }
+
+void Display_fillScreen(uint16_t color);
