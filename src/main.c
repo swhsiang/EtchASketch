@@ -13,6 +13,9 @@
 // init the display
 // https://github.com/adafruit/Adafruit_ILI9341/blob/master/Adafruit_ILI9341.cpp#L106
 
+// ILI9341 TFT display
+// https://github.com/G6EJD/ESP32-and-how-to-use-ILI9341-TFT-Display
+
 #include "stm32f0xx.h"
 #include "stm32f0_discovery.h"
 
@@ -20,21 +23,6 @@
 #ifndef pgm_read_byte
  #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
 #endif
-
-
-// RD: PB4
-// WR: PB5
-// C\D: PB6
-// CS: PB7
-// RST: PB8
-void lcd_control_gpio_init(void) {
-	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;	// enable GPIOB
-	// init PB4 ~ PA8
-	GPIOB->MODER &= ~( GPIO_MODER_MODER4 | GPIO_MODER_MODER5 | GPIO_MODER_MODER6| GPIO_MODER_MODER7 | GPIO_MODER_MODER8);
-
-	// set PB4 ~ PB7 to output mode
-	GPIOB->MODER |= GPIO_MODER_MODER4_0 | GPIO_MODER_MODER5_0 | GPIO_MODER_MODER6_0 | GPIO_MODER_MODER7_0 | GPIO_MODER_MODER8_0;
-}
 
 // ADC
 void adc_clock_init() {
@@ -54,7 +42,7 @@ void adc_clock_init() {
 
 // PB0 and PB1 for analog input
 void adc_gpio_init() {
-	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;	// enable GPIOA
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;	// enable GPIOB
 	// init PB0
 	GPIOB->MODER &= ~(GPIO_MODER_MODER0 | GPIO_MODER_MODER1);
 	// set PB0 analog mode
@@ -79,8 +67,8 @@ uint32_t read_adc_channel(unsigned channel) {
 }
 
 
-// display
-void display_gpio_init(void) {
+// display_data_line_init(void)
+void display_data_line_init() {
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;	// enable GPIOA
 	// init PA0 ~ PA7
 	GPIOA->MODER &= ~(GPIO_MODER_MODER0 | GPIO_MODER_MODER1 | GPIO_MODER_MODER2
@@ -91,6 +79,27 @@ void display_gpio_init(void) {
 	GPIOA->MODER |= GPIO_MODER_MODER0_0 | GPIO_MODER_MODER1_0 | GPIO_MODER_MODER2_0
 			| GPIO_MODER_MODER3_0 | GPIO_MODER_MODER4_0 | GPIO_MODER_MODER5_0
 			| GPIO_MODER_MODER6_0 | GPIO_MODER_MODER7_0;
+
+}
+
+// RD: PB4
+// WR: PB5
+// C\D: PB6
+// CS: PB7
+// RST: PB8
+void display_control_gpio_init(void) {
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;	// enable GPIOB
+	// init PB4 ~ PB8
+	GPIOB->MODER &= ~( GPIO_MODER_MODER4 | GPIO_MODER_MODER5 | GPIO_MODER_MODER6| GPIO_MODER_MODER7 | GPIO_MODER_MODER8);
+
+	// set PB4 ~ PB7 to output mode
+	GPIOB->MODER |= GPIO_MODER_MODER4_0 | GPIO_MODER_MODER5_0 | GPIO_MODER_MODER6_0 | GPIO_MODER_MODER7_0 | GPIO_MODER_MODER8_0;
+}
+
+// display
+void display_gpio_init(void) {
+	display_control_gpio_init();
+	display_data_line_init();
 }
 
 
@@ -114,16 +123,15 @@ uint32_t write_process(uint8_t data) {
 	return dataline;
 }
 
-
 // 400 is a magic number!!!!!
-#define PARALLEL_DELAY 40000000
-#define WRITE_DELAY    10000000
+#define PARALLEL_DELAY 4000000
+#define WRITE_DELAY    1000000
 
 void write_command(uint32_t cmd) {
 	// min: 15 ns
 	GPIOA->BSRR |= write_process(cmd);
 	// 0:command is selected (PB6)
-	GPIOB->BSRR |= GPIO_BSRR_BR_5 | GPIO_BSRR_BR_6| GPIO_BSRR_BR_7;
+	GPIOB->BSRR |= GPIO_BSRR_BS_4 | GPIO_BSRR_BR_5 | GPIO_BSRR_BR_6| GPIO_BSRR_BR_7;
 	nano_wait( PARALLEL_DELAY );
 
 
@@ -144,7 +152,6 @@ void write_data(uint32_t data) {
 	nano_wait( PARALLEL_DELAY );
 }
 
-
 void display_init() {
     uint8_t        cmd, x, numArgs;
     const uint8_t *addr = initcmd;
@@ -156,19 +163,21 @@ void display_init() {
         while(numArgs--) {
         	//spiWrite(pgm_read_byte(addr++));
         	write_data(pgm_read_byte(addr++));
-        	nano_wait(WRITE_DELAY);
+        	//nano_wait(WRITE_DELAY);
         }
         nano_wait(WRITE_DELAY);
         //if(x & 0x80) {
         //	nano_wait(120 * 1000 * 1000);
         //}
     }
+
+    // test
+    //Display_fillScreen(ILI9341_GREEN);
 }
 
 int main(void)
 {
 	//adc_init();
-	lcd_control_gpio_init();
 	display_gpio_init();
 	display_init();
 	for(;;);
