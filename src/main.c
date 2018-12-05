@@ -358,18 +358,16 @@ void UpdateScreen_XY_THICK(uint16_t x, uint16_t y, uint16_t color, uint16_t thic
   // Set column range.
   hspi_cmd(SPI1, 0x2A);
   hspi_w16(SPI1, (uint16_t)(x));
-  hspi_w16(SPI1, (uint16_t)(x + thick));
+  hspi_w16(SPI1, (uint16_t)(x + thick - 1));
   // Set row range.
   hspi_cmd(SPI1, 0x2B);
   hspi_w16(SPI1, (uint16_t)(y));
-  hspi_w16(SPI1, (uint16_t)(y + thick));
+  hspi_w16(SPI1, (uint16_t)(y + thick - 1));
   // Set 'write to RAM'
   hspi_cmd(SPI1, 0x2C);
-  uint16_t i = 0, j = 0;
-  for (i = 0; i <= thick; i++) {
-	  for(j = 0; j <= thick; j++) {
-			  hspi_w16(SPI1, color);
-	  }
+  uint16_t i = 0;
+  for (i = 0; i < thick * thick; i++) {
+	  hspi_w16(SPI1, color);
   }
 }
 
@@ -410,141 +408,199 @@ Block *block_init(uint16_t block_x, uint16_t block_y, uint16_t thick, uint16_t c
   return block;
 }
 
+#define LEFT 3
+#define RIGHT 2
 #define UP 1
 #define DOWN 0
 
-void block_x_set(Block *block) {
+void show_block_x_y_overflow(Block *block) {
+  uint16_t i = 0, height = 0, width = 0;
+
+  // original place
   // Set column range.
+  width = X_AVA_MAX - block->block_x + 1;
   hspi_cmd(SPI1, 0x2A);
   hspi_w16(SPI1, (uint16_t)(block->block_x));
-  hspi_w16(SPI1, (uint16_t)(block->block_x + block->thick));
-
-}
-
-void show_block_y_overflow(Block *block) {
-
-}
-
-void show_block(Block *block) {
-	if (block->block_y + block->thick >= Y_AVA_MAX) {
-
-	}
-  // Set column range.
-  hspi_cmd(SPI1, 0x2A);
-  hspi_w16(SPI1, (uint16_t)(block->block_x));
-  hspi_w16(SPI1, (uint16_t)(block->block_x + block->thick));
-
-
+  hspi_w16(SPI1, (uint16_t) (X_AVA_MAX - 1));
 
   // Set row range.
+  height = Y_AVA_MAX - block->block_y + 1;
   hspi_cmd(SPI1, 0x2B);
   hspi_w16(SPI1, (uint16_t)(block->block_y));
   hspi_w16(SPI1, (uint16_t)(Y_AVA_MAX - 1));
 
-	  if (block->block_y + block->thick >= Y_AVA_MAX) {
-
-		  int i = 0;
-		  uint16_t height = (Y_AVA_MAX - block->block_y + 1);
-		  uint16_t width = min(Y_AVA_MAX, max(block->thick, 1));
-		  for(i = 0; i < (height * width); i++)  {
-			  hspi_w16(SPI1, block->color);
-		  }
-
-		  block_x_set(block);
-		  hspi_cmd(SPI1, 0x2B);
-		  hspi_w16(SPI1, (uint16_t) 0);
-		  hspi_w16(SPI1, (block->block_y + block->thick - Y_AVA_MAX));
-		  int i = 0;
-		  uint16_t height = (Y_AVA_MAX - block->block_y + 1) * (block->thick);
-		  uint16_t width = min(Y_AVA_MAX, max(block->thick, 1));
-		  for(i = 0; i < (height * width); i++)  {
-			  hspi_w16(SPI1, block->color);
-		  }
-
-		  return;
-	  }
-
-}
-
-void block_up_down(Block *block, uint16_t dist, uint8_t direction) {
-	/*
-  assert(original_x>= 0);
-  assert(original_x + thick < X_AVA_MAX);
-  assert(original_y>= 0);
-  assert(original_y + thick < Y_AVA_MAX);
-  */
-
-  if (direction == UP) {
-	  if (block->block_y + block->thick + dist >= Y_AVA_MAX) {
-
-		  block_x_set(block);
-		  // Set row range.
-		  hspi_cmd(SPI1, 0x2B);
-		  hspi_w16(SPI1, (uint16_t)(block->block_y));
-		  hspi_w16(SPI1, (uint16_t)(Y_AVA_MAX - 1));
-		  int i = 0;
-		  uint16_t height = (Y_AVA_MAX - block->block_y + 1);
-		  uint16_t width = min(Y_AVA_MAX, max(block->thick, 1));
-		  for(i = 0; i < (height * width); i++)  {
-			  hspi_w16(SPI1, block->color);
-		  }
-
-		  block_x_set(block);
-		  hspi_cmd(SPI1, 0x2B);
-		  hspi_w16(SPI1, (uint16_t) 0);
-		  hspi_w16(SPI1, (block->block_y + block->thick + dist - Y_AVA_MAX));
-		  int i = 0;
-		  uint16_t height = (Y_AVA_MAX - block->block_y + 1) * (block->thick);
-		  uint16_t width = min(Y_AVA_MAX, max(block->thick, 1));
-		  for(i = 0; i < (height * width); i++)  {
-			  hspi_w16(SPI1, block->color);
-		  }
-
-		  return;
-	  }
-
-	  return;
-  } else if (!(block->block_y >= dist)) {
-
-  }
-
-  // Set row range.
-  hspi_cmd(SPI1, 0x2B);
-  hspi_w16(SPI1, (uint16_t)(block->block_y + block->thick));
-  hspi_w16(SPI1, (uint16_t)(block->block_y + block->thick + dist));
   // Set 'write to RAM'
   hspi_cmd(SPI1, 0x2C);
-  uint16_t i = 0, j = 0;
 
-  block->block_y = (block->block_y + dist) % Y_AVA_MAX;
+  for (i = 0; i < (width * height); i++) {
+	  hspi_w16(SPI1, block->color);
+  }
+
+  // start over
+  // the other round
+  // Set column range.
+  width = (block->thick + block->block_x) % X_AVA_MAX;
+  hspi_cmd(SPI1, 0x2A);
+  hspi_w16(SPI1, (uint16_t) (0));
+  hspi_w16(SPI1, (uint16_t) (width - 1));
+
+  height = (block->thick + block->block_y) % Y_AVA_MAX;
+  // Set row range.
+  hspi_cmd(SPI1, 0x2B);
+  hspi_w16(SPI1, (uint16_t) (0));
+  hspi_w16(SPI1, (uint16_t) (height - 1) );
+
+  // Set 'write to RAM'
+  hspi_cmd(SPI1, 0x2C);
+  for (i = 0; i < (width * height); i++) {
+	  hspi_w16(SPI1, block->color);
+  }
 }
 
-void block_left(Block *block, uint16_t left_dist) {
-  /*
-  assert(original_x>= 0);
-  assert(original_x + thick < X_AVA_MAX);
-  assert(original_y>= 0);
-  assert(original_y + thick < Y_AVA_MAX);
-  */
+void show_block_y_overflow(Block *block) {
+  uint16_t i = 0, height = 0;
 
+  // original place
   // Set column range.
   hspi_cmd(SPI1, 0x2A);
-  hspi_w16(SPI1, (uint16_t)(block->block_x + block->thick));
-  hspi_w16(SPI1, (uint16_t)(block->block_x + block->thick + left_dist - 1));
+  hspi_w16(SPI1, (uint16_t)(block->block_x));
+  hspi_w16(SPI1, (uint16_t) block->block_x + block->thick);
+
+  // Set row range.
+  height = Y_AVA_MAX - block->block_y + 1;
+  hspi_cmd(SPI1, 0x2B);
+  hspi_w16(SPI1, (uint16_t)(block->block_y));
+  hspi_w16(SPI1, (uint16_t)(Y_AVA_MAX - 1));
+
+  // Set 'write to RAM'
+  hspi_cmd(SPI1, 0x2C);
+
+  for (i = 0; i < (block->thick * (height)); i++) {
+	  hspi_w16(SPI1, block->color);
+  }
+
+  // start over
+  // the other round
+  // Set column range.
+  hspi_cmd(SPI1, 0x2A);
+  hspi_w16(SPI1, (uint16_t)(block->block_x));
+  hspi_w16(SPI1, (uint16_t) block->block_x + block->thick);
+
+  height = (block->thick + block->block_y ) % Y_AVA_MAX;
+  // Set row range.
+  hspi_cmd(SPI1, 0x2B);
+  hspi_w16(SPI1, (uint16_t) (0));
+  hspi_w16(SPI1, (uint16_t) (height - 1) );
+
+  // Set 'write to RAM'
+  hspi_cmd(SPI1, 0x2C);
+
+  for (i = 0; i < (block->thick * (height)); i++) {
+	  hspi_w16(SPI1, block->color);
+  }
+}
+
+// block x, y overflow
+// block x overflow or y overflow
+// block ok
+
+void show_block_valid(Block *block) {
+  // Set column range.
+  hspi_cmd(SPI1, 0x2A);
+  hspi_w16(SPI1, (uint16_t)(block->block_x));
+  hspi_w16(SPI1, (uint16_t)(block->block_x + block->thick - 1));
+
   // Set row range.
   hspi_cmd(SPI1, 0x2B);
   hspi_w16(SPI1, (uint16_t)(block->block_y));
   hspi_w16(SPI1, (uint16_t)(block->block_y + block->thick - 1));
   // Set 'write to RAM'
   hspi_cmd(SPI1, 0x2C);
-  uint16_t i = 0, j = 0;
-  for (i = 0; i < left_dist; i++) {
-	  for(j=0; j < block->thick; j++) {
-		  hspi_w16(SPI1, block->color);
-	  }
+
+  uint16_t i = 0;
+  for (i = 0; i < (block->thick * block->thick); i++) {
+	  hspi_w16(SPI1, block->color);
+  }
+}
+
+void show_block_x_overflow(Block *block) {
+  uint16_t i = 0, width = 0;
+
+	// original place
+  // Set column range.
+  hspi_cmd(SPI1, 0x2A);
+  hspi_w16(SPI1, (uint16_t)(block->block_x));
+  hspi_w16(SPI1, (uint16_t)(X_AVA_MAX - 1));
+  width = X_AVA_MAX - block->block_x + 1;
+
+  // Set row range.
+  hspi_cmd(SPI1, 0x2B);
+  hspi_w16(SPI1, (uint16_t)(block->block_y));
+  hspi_w16(SPI1, (uint16_t) block->block_y + block->thick);
+  // Set 'write to RAM'
+  hspi_cmd(SPI1, 0x2C);
+
+  for (i = 0; i < (block->thick * (width)); i++) {
+	  hspi_w16(SPI1, block->color);
   }
 
-  block->block_x = (block->block_x + left_dist) % X_AVA_MAX;
+
+  // start over
+  width = (block->thick + block->block_x) % X_AVA_MAX;
+  // the other round
+  // Set column range.
+  hspi_cmd(SPI1, 0x2A);
+  hspi_w16(SPI1, (uint16_t)(0));
+  hspi_w16(SPI1, (uint16_t)(width - 1));
+  // Set row range.
+  hspi_cmd(SPI1, 0x2B);
+  hspi_w16(SPI1, (uint16_t)(block->block_y));
+  hspi_w16(SPI1, (uint16_t) block->block_y + block->thick);
+
+  // Set 'write to RAM'
+  hspi_cmd(SPI1, 0x2C);
+
+  for (i = 0; i < (block->thick * (width)); i++) {
+	  hspi_w16(SPI1, block->color);
+  }
+}
+
+void show_block(Block *block) {
+	uint16_t x = (block->block_x + block->thick) > X_AVA_MAX;
+	uint16_t y = (block->block_y + block->thick) > Y_AVA_MAX;
+
+	if ( x != 0 && y != 0) {
+		show_block_x_y_overflow(block);
+	} else if (x != 0) {
+		show_block_x_overflow(block);
+	} else if (y != 0) {
+		show_block_y_overflow(block);
+	} else {
+		show_block_valid(block);
+	}
+}
+
+void block_up_down(Block *block, uint16_t dist, uint8_t direction) {
+	assert(dist < Y_AVA_MAX);
+	assert(direction == DOWN || direction == UP);
+	if (direction == DOWN) {
+		block->block_y = min(block->block_y - dist, Y_AVA_MAX - 1) % Y_AVA_MAX;
+	} else {
+		block->block_y = (block->block_y + dist) % Y_AVA_MAX;
+	}
+	show_block(block);
+}
+
+
+void block_left_right(Block *block, uint16_t dist, uint16_t direction) {
+	assert(dist < X_AVA_MAX);
+	assert(direction == RIGHT || direction == LEFT);
+	if (direction == RIGHT) {
+		block->block_x = min(block->block_x - dist, X_AVA_MAX - 1) % X_AVA_MAX;
+	} else {
+		block->block_x = (block->block_x + dist) % X_AVA_MAX;
+	}
+	show_block(block);
 }
 
 #define BACKGROUD ((uint16_t) 0xFFFF)
@@ -611,20 +667,22 @@ int main(void) {
 
 	Block *block = block_init(0, 0, 20, 0xFF00);
 
-	int a = 0, dist = 20;
-	delay_cycles(5000000);
-	block_up(block, dist);
+	int dist = 20;
+	//delay_cycles(5000000);
 
-	delay_cycles(5000000);
-	block_left(block, dist);
+	uint8_t var = 0, i = 0;
+	for (i = 0; i < 20; i++) {
+		if (var == DOWN || var == UP) {
+			block_up_down(block, dist, var);
+		} else if (var == RIGHT || var == LEFT) {
+			block_left_right(block, dist, var);
+		}
 
-	delay_cycles(5000000);
-	block_up(block, dist);
+		delay_cycles(5000000);
 
-	delay_cycles(5000000);
-	block_left(block, dist);
-
-
+		var++;
+		var = var % 4;
+	}
 
 	//FillScreen();
 
