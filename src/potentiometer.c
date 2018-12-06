@@ -1,3 +1,6 @@
+#include "potentiometer.h"
+#include "block.h"
+
 uint32_t adc_helper_UPDN(uint32_t dr_check, uint32_t div){
 	//This variable is static because we want to program to remember this value and alter it appropriately each time the function is called
 	static uint32_t comp;
@@ -13,9 +16,6 @@ uint32_t adc_helper_UPDN(uint32_t dr_check, uint32_t div){
 	//return its difference
 	comp = dr_check;
 	return difference;
-	
-	
-	
 }
 
 uint32_t adc_helper_RL(uint32_t dr_check, uint32_t div){
@@ -34,11 +34,7 @@ uint32_t adc_helper_RL(uint32_t dr_check, uint32_t div){
 	comp = dr_check;
 	return difference;
 	
-	
-	
 }
-
-
 
 void adc_init(void)	// for the potentiometers
 {
@@ -53,7 +49,9 @@ void adc_init(void)	// for the potentiometers
 	while((ADC1->CR & ADC_CR_ADSTART));	// wait for ADCstart to be 0
 	ADC1->CFGR1 |= ADC_CFGR1_CONT | ADC_CFGR1_SCANDIR; /* (2) */
 	ADC1->SMPR |= ADC_SMPR1_SMPR_0 | ADC_SMPR1_SMPR_1 | ADC_SMPR1_SMPR_2; /* (4) */
-	//ADC1->IER = ADC_IER_EOCIE | ADC_IER_EOSEQIE | ADC_IER_OVRIE; /* (5) */
+}
+
+void read_adc() {
 	while(1)
 	{
 		ADC1->CHSELR = 0;	// unselect all ADC channels
@@ -72,7 +70,7 @@ void adc_init(void)	// for the potentiometers
 		//PERHAPS THE DISTANCE SENT TO DAVIDS FUNCITON IS ALWAYS GOING TO BE 1.
 		//IT IS STILL NECESSARY TO FIND THE DIFFERENCE BETWEEN THE DATA REGISTER AND ITS PREVIOUS VALUE
 		uint32_t bit_res = 4095;
-		uint32_t div = (bit_res / ROW_NUM) * thick;
+		uint32_t div = (bit_res / ROW_NUM);
 		//This function will hopefully find the difference between the data register and its previous value
 		uint32_t difference = adc_helper_UPDN(ADC1->DR , div);
 		int direction;
@@ -90,10 +88,6 @@ void adc_init(void)	// for the potentiometers
 
 		
 
-
-
-
-
 		ADC1->CHSELR = 0;	// unselect all ADC channels
 		ADC1->CHSELR |=  ADC_CHSELR_CHSEL11; //1<<11;	// select channel 11
 		while(!(ADC1->ISR & ADC_ISR_ADRDY));	// wait for ADC ready
@@ -102,7 +96,6 @@ void adc_init(void)	// for the potentiometers
 		uint32_t div2 = bit_res / COLUMN_NUM;
 		//This function will hopefully find the difference between the data register and its previous value
 		uint32_t difference2 = adc_helper_RL(ADC1->DR , div2);
-		int direction;
 		//Now we must find the direction
 		if(difference2 > div2){
 			direction = 2;
@@ -115,29 +108,4 @@ void adc_init(void)	// for the potentiometers
 			//davids_function(1,direction)
 		}
 	}
-
-
-}
-
-void adc_init_alternative(void){
-	/* This code example configures the AD conversion in continuous mode and in
-	 backward scan. It also enable the interrupts. */
-	/* (1) Select HSI14 by writing 00 in CKMODE (reset value) */
-	/* (2) Select the continuous mode and scanning direction */
-	/* (3) Select CHSEL1, CHSEL9, CHSEL10 and CHSEL17 */
-	/* (4) Select a sampling mode of 111 i.e. 239.5 ADC clk to be greater than
-	 17.1us */
-	/* (5) Enable interrupts on EOC, EOSEQ and overrrun */
-	/* (6) Wake-up the VREFINT (only for VBAT, Temp sensor and VRefInt) */
-	//ADC1->CFGR2 &= ~ADC_CFGR2_CKMODE; /* (1) */
-	ADC1->CFGR1 |= ADC_CFGR1_CONT | ADC_CFGR1_SCANDIR; /* (2) */
-	ADC1->CHSELR = ADC_CHSELR_CHSEL10 | ADC_CHSELR_CHSEL11 /* (3) */
-	ADC1->SMPR |= ADC_SMPR1_SMPR_0 | ADC_SMPR1_SMPR_1 | ADC_SMPR1_SMPR_2; /* (4) */
-	ADC1->IER = ADC_IER_EOCIE | ADC_IER_EOSEQIE | ADC_IER_OVRIE; /* (5) */
-	//ADC->CCR |= ADC_CCR_VREFEN; /* (6) */
-	/* Configure NVIC for ADC */
-	/* (7) Enable Interrupt on ADC */
-	/* (8) Set priority for ADC */
-	NVIC_EnableIRQ(ADC1_COMP_IRQn); /* (7) */
-	NVIC_SetPriority(ADC1_COMP_IRQn,0); /* (8) */
 }
