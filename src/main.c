@@ -379,30 +379,32 @@ int main(void) {
 
   CleanScreen();
 
-  Block *block = block_init(100, 100, 20, 0xFF00);
+  Block *block = block_init(100, 100, 10, 0xFF00);
 
-  // delay_cycles(5000000);
 
   adc_init();
-  Displacement *disp = create_displacement(512 - 1, 0, 512 - 1, 0);
+  // FIXME Determine proper init values for displacemen!
+  Displacement *disp = create_displacement(0, 0);
   uint16_t i = 0;
 
   while (1) {
+	  delay_cycles(2000000);
+
 	  read_adc(disp);
 	  if (disp->x_changed == CHANGED) {
 		  disp->x_changed = NON_CHANGED;
 		  assert(disp->x_direction == LEFT || disp->x_direction == RIGHT);
-		  for(i = 0; i < disp->x_diff; i++) {
-			  block_left_right(block, 1, disp->x_direction);
-		  }
+		  //for(i = 0; i < disp->x_diff; i++) {
+		  //block_left_right(block, 10, disp->x_direction);
+		  //}
 	  }
 
 	  if (disp->y_changed == CHANGED) {
 		  disp->y_changed = NON_CHANGED;
 		  assert(disp->y_direction == UP || disp->y_direction == DOWN);
-		  for(i = 0; i < disp->y_diff; i++) {
-			  block_up_down(block, 1, disp->y_direction);
-		  }
+		  //for(i = 0; i < disp->y_diff; i++) {
+		  block_up_down(block, 10, disp->y_direction);
+		  //}
 	  }
   }
   return 0;

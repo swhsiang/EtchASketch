@@ -199,6 +199,7 @@ void show_block_x_overflow(Block *block) {
   }
 }
 
+// FIXME should stop drawing pixels which is exit the screen
 void show_block(Block *block) {
   uint16_t x = (block->block_x + block->thick) > X_AVA_MAX;
   uint16_t y = (block->block_y + block->thick) > Y_AVA_MAX;
@@ -217,8 +218,13 @@ void show_block(Block *block) {
 void block_up_down(Block *block, uint16_t dist, uint8_t direction) {
   // assert(dist < Y_AVA_MAX);
   // assert(direction == DOWN || direction == UP);
+	// FIXME should move the block pixel by pixel
   if (direction == DOWN) {
-    block->block_y = min(block->block_y - dist, Y_AVA_MAX - 1) % Y_AVA_MAX;
+	  if (block->block_y > dist) {
+		  block->block_y = (block->block_y - dist) % Y_AVA_MAX;
+	  } else {
+
+	  }
   } else {
     block->block_y = (block->block_y + dist) % Y_AVA_MAX;
   }

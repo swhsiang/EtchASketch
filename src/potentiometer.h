@@ -18,7 +18,7 @@
 
 typedef struct Displacement  {
 	uint8_t x_changed, y_changed;
-	uint32_t x_disp, y_disp;
+	uint32_t x_val, y_val;
 	uint32_t x_diff, y_diff;
 	uint8_t  x_direction, y_direction;
 } Displacement;
@@ -28,4 +28,4 @@ void adc_helper_RL(uint32_t new_val, Displacement *disp);
 
 void adc_init();
 void read_adc(Displacement* disp);
-Displacement *create_displacement(uint16_t x_disp, uint16_t x_dir, uint16_t y_disp, uint16_t y_dir);
+Displacement *create_displacement(uint16_t x_dir, uint16_t y_dir);
