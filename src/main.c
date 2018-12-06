@@ -8,27 +8,17 @@
  ******************************************************************************
  */
 
-#include "stm32f0_discovery.h"
-#include "stm32f0xx.h"
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include "block.h"
+#include "stm32f0_discovery.h"
+#include "stm32f0xx.h"
 
 // available x-axis
-#define X_AVA_MAX ( (uint16_t)(COLUMN_NUM) )
+#define X_AVA_MAX ((uint16_t)(COLUMN_NUM))
 // available y-axis
-#define Y_AVA_MAX ( (uint16_t)(ROW_NUM) )
-
- #define max(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
-
- #define min(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })
+#define Y_AVA_MAX ((uint16_t)(ROW_NUM))
 
 void __attribute__((optimize("O0"))) delay_cycles(uint32_t cyc) {
   uint32_t d_i;
@@ -36,6 +26,7 @@ void __attribute__((optimize("O0"))) delay_cycles(uint32_t cyc) {
     asm("NOP");
   }
 }
+
 void hspi_init(SPI_TypeDef *SPIx) {
   // Ensure that the peripheral is disabled, and reset it.
   SPIx->CR1 &= ~(SPI_CR1_SPE);
@@ -285,8 +276,8 @@ void spi1_init() {
 }
 
 void SPI_INIT() {
-	spi_gpio_init();
-	spi1_init();
+  spi_gpio_init();
+  spi1_init();
 }
 
 void FillScreen() {
@@ -329,20 +320,21 @@ void UpdateScreen() {
   hspi_cmd(SPI1, 0x2C);
   uint16_t i = 0, j = 0;
   for (i = 0; i < ROW_NUM; i++) {
-	  for(j = 0; j < COLUMN_NUM; j++) {
-		  if (i >= 54 && i < 58) {
-			  hspi_w16(SPI1, (uint16_t) 0xFF00);
-		  } else {
-			  hspi_w16(SPI1, (uint16_t) 0x0000);
-		  }
-	  }
+    for (j = 0; j < COLUMN_NUM; j++) {
+      if (i >= 54 && i < 58) {
+        hspi_w16(SPI1, (uint16_t)0xFF00);
+      } else {
+        hspi_w16(SPI1, (uint16_t)0x0000);
+      }
+    }
   }
 }
 
-void UpdateScreen_XY_THICK(uint16_t x, uint16_t y, uint16_t color, uint16_t thick) {
-  assert(x>= 0);
+void UpdateScreen_XY_THICK(uint16_t x, uint16_t y, uint16_t color,
+                           uint16_t thick) {
+  assert(x >= 0);
   assert(x + thick < X_AVA_MAX);
-  assert(y>= 0);
+  assert(y >= 0);
   assert(y + thick < Y_AVA_MAX);
 
   // Set column range.
@@ -357,13 +349,11 @@ void UpdateScreen_XY_THICK(uint16_t x, uint16_t y, uint16_t color, uint16_t thic
   hspi_cmd(SPI1, 0x2C);
   uint16_t i = 0;
   for (i = 0; i < thick * thick; i++) {
-	  hspi_w16(SPI1, color);
+    hspi_w16(SPI1, color);
   }
 }
 
-
-
-#define BACKGROUD ((uint16_t) 0xFFFF)
+#define BACKGROUD ((uint16_t)0xFFFF)
 void CleanScreen() {
   // Set column range.
   hspi_cmd(SPI1, 0x2A);
@@ -377,22 +367,21 @@ void CleanScreen() {
   hspi_cmd(SPI1, 0x2C);
   uint16_t i = 0, j = 0;
   for (i = 0; i < COLUMN_NUM; i++) {
-	  for(j = 0; j < ROW_NUM; j++) {
-			  hspi_w16(SPI1, BACKGROUD);
-	  }
+    for (j = 0; j < ROW_NUM; j++) {
+      hspi_w16(SPI1, BACKGROUD);
+    }
   }
 }
 
-
 int main(void) {
-	SPI_INIT();
+  SPI_INIT();
 
-	CleanScreen();
+  CleanScreen();
 
-	Block *block = block_init(100, 100, 20, 0xFF00);
+  Block *block = block_init(100, 100, 20, 0xFF00);
 
-	int dist = 20;
-	//delay_cycles(5000000);
+  int dist = 20;
+  // delay_cycles(5000000);
 
-	return 0;
+  return 0;
 }

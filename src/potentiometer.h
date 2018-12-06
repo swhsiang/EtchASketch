@@ -1,8 +1,8 @@
-#include "stm32f0_discovery.h"
-#include "stm32f0xx.h"
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+#include "stm32f0_discovery.h"
+#include "stm32f0xx.h"
 
 uint32_t adc_helper_UPDN(uint32_t dr_check, uint32_t div);
 

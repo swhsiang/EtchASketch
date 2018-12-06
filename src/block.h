@@ -1,8 +1,8 @@
-#include "stm32f0_discovery.h"
-#include "stm32f0xx.h"
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+#include "stm32f0_discovery.h"
+#include "stm32f0xx.h"
 
 #ifndef _INIT_SUCCESS_
 #define _INIT_SUCCESS_ 1
@@ -18,24 +18,24 @@
 #define PA_CS (12)
 #define PA_RST (15)
 
-#define ROW_NUM ((uint16_t) 320)
-#define COLUMN_NUM ((uint16_t) 240)
+#define ROW_NUM ((uint16_t)320)
+#define COLUMN_NUM ((uint16_t)240)
 
 // available x-axis
-#define X_AVA_MAX ( (uint16_t)(COLUMN_NUM) )
+#define X_AVA_MAX ((uint16_t)(COLUMN_NUM))
 
 // available y-axis
-#define Y_AVA_MAX ( (uint16_t)(ROW_NUM) )
+#define Y_AVA_MAX ((uint16_t)(ROW_NUM))
+
 #endif
 
 typedef struct Block {
-	uint16_t block_x, block_y, thick, color;
+  uint16_t block_x, block_y, thick, color;
 } Block;
 
 void block_left_right(Block *block, uint16_t dist, uint16_t direction);
 
 void block_up_down(Block *block, uint16_t dist, uint8_t direction);
-
 
 void show_block(Block *block);
 
