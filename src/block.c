@@ -225,7 +225,7 @@ void block_up_down(Block *block, uint16_t dist, uint8_t direction) {
   show_block(block);
 }
 
-void block_left_right(Block *block, uint16_t dist, uint16_t direction) {
+void block_left_right(Block *block, uint16_t dist, uint8_t direction) {
   // assert(dist < X_AVA_MAX);
   // assert(direction == RIGHT || direction == LEFT);
   if (direction == RIGHT) {

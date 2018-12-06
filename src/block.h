@@ -27,13 +27,12 @@
 // available y-axis
 #define Y_AVA_MAX ((uint16_t)(ROW_NUM))
 
-#endif
-
 typedef struct Block {
   uint16_t block_x, block_y, thick, color;
 } Block;
+#endif
 
-void block_left_right(Block *block, uint16_t dist, uint16_t direction);
+void block_left_right(Block *block, uint16_t dist, uint8_t direction);
 
 void block_up_down(Block *block, uint16_t dist, uint8_t direction);
 

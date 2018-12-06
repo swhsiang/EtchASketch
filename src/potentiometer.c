@@ -1,48 +1,51 @@
 #include "potentiometer.h"
 #include "block.h"
 
-uint32_t adc_helper_UPDN(uint32_t dr_check, uint32_t div) {
+void adc_helper_UPDN(uint16_t new_val, Displacement *disp) {
   // This variable is static because we want to program to remember this value
   // and alter it appropriately each time the function is called
-  static uint32_t comp;
-  uint32_t difference;
-  // The idea behind this is to initialize the comp variable as 0 only before
-  // the data register of the adc has surpassed the threshold
-  if (dr_check < div) {
-    comp = 0x0;
-  }
-  // Finding the difference between the comparison variable and the data
-  // register
-  difference = comp - dr_check;
-  // The next iteration (assuming the input has surpassed the div threshold)
-  // will compare its data register with its previous value and return its
-  // difference
-  comp = dr_check;
-  return difference;
+	if ((new_val < OFFSET_Y_AXIS - 1) || (new_val + OFFSET_Y_AXIS > ADC_SCALES - 1) )
+		return;
+
+	if (new_val == disp->y_disp) {
+		return;
+	}
+
+	if (new_val > disp->y_disp) {
+		disp->y_direction = UP;
+		disp->y_diff = new_val - disp->y_disp;
+	} else {
+		disp->y_direction = DOWN;
+		disp->y_diff = disp->y_disp - new_val;
+	}
+
+
+	disp->y_disp = new_val;
+	disp->y_changed = CHANGED;
 }
 
-uint32_t adc_helper_RL(uint32_t dr_check, uint32_t div) {
-  // This variable is static because we want to program to remember this value
-  // and alter it appropriately each time the function is called
-  static uint32_t comp;
-  uint32_t difference;
-  // The idea behind this is to initialize the comp variable as 0 only before
-  // the data register of the adc has surpassed the threshold
-  if (dr_check < div) {
-    comp = 0x0;
-  }
-  // Finding the difference between the comparison variable and the data
-  // register
-  difference = comp - dr_check;
-  // The next iteration (assuming the input has surpassed the div threshold)
-  // will compare its data register with its previous value and return its
-  // difference
-  comp = dr_check;
-  return difference;
+void adc_helper_RL(uint32_t new_val, Displacement *disp) {
+	if ((new_val < OFFSET_X_AXIS - 1) || (new_val + OFFSET_X_AXIS > ADC_SCALES - 1) )
+		return;
+
+	if (new_val == disp->x_disp) {
+		return;
+	}
+
+	if (new_val > disp->x_disp) {
+		disp->x_direction = LEFT;
+		disp->x_diff = new_val - disp->x_disp;
+	} else {
+		disp->x_direction = RIGHT;
+		disp->x_diff = disp->x_disp - new_val;
+	}
+
+	disp->x_disp = new_val;
+	disp->x_changed = CHANGED;
 }
 
-void adc_init(void)  // for the potentiometers
-{
+// for the potentiometers
+void adc_init() {
   // int * block;
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN;   // enable clock to Port C
   GPIOC->MODER |= 0xf;                 // set PC0 and PC1 for analog input
@@ -55,23 +58,26 @@ void adc_init(void)  // for the potentiometers
     ;  // wait for ADC to be ready
   while ((ADC1->CR & ADC_CR_ADSTART))
     ;  // wait for ADCstart to be 0
-  ADC1->CFGR1 |= ADC_CFGR1_CONT | ADC_CFGR1_SCANDIR; /* (2) */
+  // Change the resolution to 10 instead of 12;
+  ADC1->CFGR1 |= ADC_CFGR1_CONT | ADC_CFGR1_RES_0; /* (2) */
+  // FIXME determine the sample rate of ADC
   ADC1->SMPR |=
       ADC_SMPR1_SMPR_0 | ADC_SMPR1_SMPR_1 | ADC_SMPR1_SMPR_2; /* (4) */
 }
 
-void read_adc() {
-  while (1) {
-    ADC1->CHSELR = 0;                    // unselect all ADC channels
-    ADC1->CHSELR |= ADC_CHSELR_CHSEL10;  // 1<<10;	// select channel 10
-    while (!(ADC1->ISR & ADC_ISR_ADRDY))
-      ;                          // wait for ADC ready
-    ADC1->CR |= ADC_CR_ADSTART;  // start the ADC
-    while (!(ADC1->ISR & ADC_ISR_EOC))
-      ;  // wait for end of conversion
-    // delay_cycles(5000000);
+void read_adc(Displacement* disp) {
+	// unselect all ADC channels
+    ADC1->CHSELR = 0;
+    // 1<<10;	// select channel 10
+    ADC1->CHSELR |= ADC_CHSELR_CHSEL10;
+    // wait for ADC ready
+    while (!(ADC1->ISR & ADC_ISR_ADRDY));
+    // start the ADC
+    ADC1->CR |= ADC_CR_ADSTART;
+    // wait for end of conversion
+    while (!(ADC1->ISR & ADC_ISR_EOC));
+    adc_helper_UPDN(ADC1->DR, disp);
 
-    // DAVIDS FUNCTION ACCEPTS A DISTANCE AND A DIRECTION
     // 1. CHECK IF THE DATA REGISTER HAS CHANGED BY 2^n / (ROW_NUM OR COL_NUM)
     // (THIS CAN BE IN THE POSITIVE OR NEGATIVE DIRECTIONS)
     // 2. IF IT HAS, INITIATE THE SOFTWARE TRIGGER AND CALL THE DISPLAY FUNCTION
@@ -82,23 +88,8 @@ void read_adc() {
     // TO UPDATE THE SCREEN 2^n / (ROW_NUM OR COL_NUM) PERHAPS THE DISTANCE SENT
     // TO DAVIDS FUNCITON IS ALWAYS GOING TO BE 1. IT IS STILL NECESSARY TO FIND
     // THE DIFFERENCE BETWEEN THE DATA REGISTER AND ITS PREVIOUS VALUE
-    uint32_t bit_res = 4095;
-    uint32_t div = (bit_res / ROW_NUM);
     // This function will hopefully find the difference between the data
     // register and its previous value
-    uint32_t difference = adc_helper_UPDN(ADC1->DR, div);
-    int direction;
-    // Now we must find the direction
-    if (difference > div) {
-      direction = 1;
-      // NOW WE MUST SEND THE ARGUMENTS TO DAVIDS FUNCTION
-      // davids_function(1,direction)
-    } else if (difference < (-1 * div)) {
-      direction = 0;
-      // NOW WE MUST SEND THE ARGUMENTS TO DAVIDS FUNCTION
-      // davids_function(1,direction)
-    }
-
     ADC1->CHSELR = 0;                    // unselect all ADC channels
     ADC1->CHSELR |= ADC_CHSELR_CHSEL11;  // 1<<11;	// select channel 11
     while (!(ADC1->ISR & ADC_ISR_ADRDY))
@@ -106,19 +97,19 @@ void read_adc() {
     ADC1->CR |= ADC_CR_ADSTART;  // start the ADC
     while (!(ADC1->ISR & ADC_ISR_EOC))
       ;  // wait for end of conversion
-    uint32_t div2 = bit_res / COLUMN_NUM;
     // This function will hopefully find the difference between the data
     // register and its previous value
-    uint32_t difference2 = adc_helper_RL(ADC1->DR, div2);
-    // Now we must find the direction
-    if (difference2 > div2) {
-      direction = 2;
-      // NOW WE MUST SEND THE ARGUMENTS TO DAVIDS FUNCTION
-      // davids_function(1,direction)
-    } else if (difference2 < (-1 * div2)) {
-      direction = 3;
-      // NOW WE MUST SEND THE ARGUMENTS TO DAVIDS FUNCTION
-      // davids_function(1,direction)
-    }
-  }
+    adc_helper_RL(ADC1->DR, disp);
+}
+
+Displacement *create_displacement(uint16_t x_disp, uint16_t x_dir, uint16_t y_disp, uint16_t y_dir) {
+	Displacement *disp = (Displacement *) malloc(sizeof(Displacement));
+	disp->x_direction = x_dir;
+	disp->x_disp = x_disp;
+	disp->x_changed = NON_CHANGED;
+
+	disp->y_direction = y_dir;
+	disp->y_disp = y_disp;
+	disp->y_changed = NON_CHANGED;
+	return disp;
 }
