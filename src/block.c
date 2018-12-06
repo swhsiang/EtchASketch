@@ -70,26 +70,6 @@ void show_block_x_y_overflow(Block *block) {
   for (i = 0; i < (width * height); i++) {
     hspi_w16(SPI1, block->color);
   }
-
-  // start over
-  // the other round
-  // Set column range.
-  width = (block->thick + block->block_x) % X_AVA_MAX;
-  hspi_cmd(SPI1, 0x2A);
-  hspi_w16(SPI1, (uint16_t)(0));
-  hspi_w16(SPI1, (uint16_t)(width - 1));
-
-  height = (block->thick + block->block_y) % Y_AVA_MAX;
-  // Set row range.
-  hspi_cmd(SPI1, 0x2B);
-  hspi_w16(SPI1, (uint16_t)(0));
-  hspi_w16(SPI1, (uint16_t)(height - 1));
-
-  // Set 'write to RAM'
-  hspi_cmd(SPI1, 0x2C);
-  for (i = 0; i < (width * height); i++) {
-    hspi_w16(SPI1, block->color);
-  }
 }
 
 void show_block_y_overflow(Block *block) {
@@ -114,25 +94,6 @@ void show_block_y_overflow(Block *block) {
     hspi_w16(SPI1, block->color);
   }
 
-  // start over
-  // the other round
-  // Set column range.
-  hspi_cmd(SPI1, 0x2A);
-  hspi_w16(SPI1, (uint16_t)(block->block_x));
-  hspi_w16(SPI1, (uint16_t)block->block_x + block->thick);
-
-  height = (block->thick + block->block_y) % Y_AVA_MAX;
-  // Set row range.
-  hspi_cmd(SPI1, 0x2B);
-  hspi_w16(SPI1, (uint16_t)(0));
-  hspi_w16(SPI1, (uint16_t)(height - 1));
-
-  // Set 'write to RAM'
-  hspi_cmd(SPI1, 0x2C);
-
-  for (i = 0; i < (block->thick * (height)); i++) {
-    hspi_w16(SPI1, block->color);
-  }
 }
 
 // block x, y overflow
@@ -172,25 +133,6 @@ void show_block_x_overflow(Block *block) {
   hspi_cmd(SPI1, 0x2B);
   hspi_w16(SPI1, (uint16_t)(block->block_y));
   hspi_w16(SPI1, (uint16_t)block->block_y + block->thick);
-  // Set 'write to RAM'
-  hspi_cmd(SPI1, 0x2C);
-
-  for (i = 0; i < (block->thick * (width)); i++) {
-    hspi_w16(SPI1, block->color);
-  }
-
-  // start over
-  width = (block->thick + block->block_x) % X_AVA_MAX;
-  // the other round
-  // Set column range.
-  hspi_cmd(SPI1, 0x2A);
-  hspi_w16(SPI1, (uint16_t)(0));
-  hspi_w16(SPI1, (uint16_t)(width - 1));
-  // Set row range.
-  hspi_cmd(SPI1, 0x2B);
-  hspi_w16(SPI1, (uint16_t)(block->block_y));
-  hspi_w16(SPI1, (uint16_t)block->block_y + block->thick);
-
   // Set 'write to RAM'
   hspi_cmd(SPI1, 0x2C);
 
