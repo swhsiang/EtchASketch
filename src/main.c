@@ -374,12 +374,6 @@ void CleanScreen() {
   }
 }
 
-void push_button_init() {
-  RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
-  GPIOC->MODER &= ~(GPIO_MODER_MODER2|GPIO_MODER_MODER3 | GPIO_MODER_MODER4 | GPIO_MODER_MODER5);
-  GPIOC->PUPDR |= GPIO_PUPDR_PUPDR2_1 | GPIO_PUPDR_PUPDR3_1 | GPIO_PUPDR_PUPDR4_1 | GPIO_PUPDR_PUPDR5_1;
-}
-
 uint16_t get_pin(uint8_t io) {
 	return GPIOC->IDR & (GPIO_IDR_2 << io);
 }
@@ -388,32 +382,19 @@ int main(void) {
   SPI_INIT();
   CleanScreen();
 
-  Block *block = block_init(100, 100, 10, 10 , 0xFF00);
+  Block *block = block_init(140, 140, 10, 10 , 0xFF00);
   adc_init();
 
-  // FIXME Determine proper init values for displacemen!
   Displacement *disp = create_displacement(0, 0);
   uint16_t i = 0;
 
   delay_cycles(20000);
 
-  push_button_init();
   show_block(block);
   while (1) {
 	  read_adc(block);
-	  delay_cycles(500000);
-	  if (get_pin(DOWN)) {
-		  block_up_down(block, block->thick_y, DOWN);
-	  }
-	  if (get_pin(UP)) {
-		  block_up_down(block, block->thick_y, UP);
-	  }
-	  if (get_pin(LEFT)) {
-		  block_left_right(block, block->thick_x, LEFT);
-	  }
-	  if (get_pin(RIGHT)) {
-		  block_left_right(block, block->thick_x, RIGHT);
-	  }
+	  show_block(block);
+	  delay_cycles(200000);
   }
   return 0;
 }

@@ -91,7 +91,8 @@ void adc_helper_RL(uint32_t new_val, Displacement *disp) {
 void adc_init() {
   // int * block;
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN;   // enable clock to Port C
-  GPIOC->MODER |= 0xf;                 // set PC0 and PC1 for analog input
+  GPIOC->MODER |= GPIO_MODER_MODER0 | GPIO_MODER_MODER4 | GPIO_MODER_MODER5;
+
   RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;  // enable clock to ADC unit
   RCC->CR2 |= RCC_CR2_HSI14ON;         // turn on hi-spd internal 14 MHz clock
   while (!(RCC->CR2 & RCC_CR2_HSI14RDY))
@@ -121,17 +122,19 @@ void read_adc(Block* block) {
     block->color = (ADC1->DR) % (0xFFFF);
 
 
-    ADC1->CHSELR = 0;                    // unselect all ADC channels
-    ADC1->CHSELR |= ADC_CHSELR_CHSEL11;  // 1<<11;	// select channel 11
-    while (!(ADC1->ISR & ADC_ISR_ADRDY))
-      ;                          // wait for ADC ready
-    ADC1->CR |= ADC_CR_ADSTART;  // start the ADC
-    while (!(ADC1->ISR & ADC_ISR_EOC))
-      ;  // wait for end of conversion
-    // This function will hopefully find the difference between the data
-    // register and its previous value
-    block->color = (block->color * ADC1->DR) % (0xFFFF);
+    ADC1->CHSELR = 0;
+    ADC1->CHSELR |= ADC_CHSELR_CHSEL14;
+    while (!(ADC1->ISR & ADC_ISR_ADRDY));
+    ADC1->CR |= ADC_CR_ADSTART;
+    while (!(ADC1->ISR & ADC_ISR_EOC));
+    block->block_x = ADC1->DR / 17 ;
 
+    ADC1->CHSELR = 0;
+    ADC1->CHSELR |= ADC_CHSELR_CHSEL15;
+    while (!(ADC1->ISR & ADC_ISR_ADRDY));
+    ADC1->CR |= ADC_CR_ADSTART;
+    while (!(ADC1->ISR & ADC_ISR_EOC));
+    block->block_y = ADC1->DR / 8;
 }
 
 void displacement_init(Displacement *disp) {
