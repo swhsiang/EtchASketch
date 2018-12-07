@@ -91,7 +91,7 @@ void adc_helper_RL(uint32_t new_val, Displacement *disp) {
 void adc_init() {
   // int * block;
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN;   // enable clock to Port C
-  GPIOC->MODER |= GPIO_MODER_MODER0 | GPIO_MODER_MODER4 | GPIO_MODER_MODER5;
+  GPIOC->MODER |= GPIO_MODER_MODER0 | GPIO_MODER_MODER1 | GPIO_MODER_MODER4 | GPIO_MODER_MODER5;
 
   RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;  // enable clock to ADC unit
   RCC->CR2 |= RCC_CR2_HSI14ON;         // turn on hi-spd internal 14 MHz clock
@@ -119,7 +119,17 @@ void read_adc(Block* block) {
     ADC1->CR |= ADC_CR_ADSTART;
     // wait for end of conversion
     while (!(ADC1->ISR & ADC_ISR_EOC));
+    delay_cycles(2000);
     block->color = (ADC1->DR) % (0xFFFF);
+
+    ADC1->CHSELR = 0;
+    ADC1->CHSELR |= ADC_CHSELR_CHSEL11;
+    while (!(ADC1->ISR & ADC_ISR_ADRDY));
+    ADC1->CR |= ADC_CR_ADSTART;
+    while (!(ADC1->ISR & ADC_ISR_EOC));
+    delay_cycles(2000);
+    uint16_t temp = ADC1->DR;
+    block->color = (block->color * temp ) % (0xFFFF);
 
 
     ADC1->CHSELR = 0;
@@ -127,6 +137,7 @@ void read_adc(Block* block) {
     while (!(ADC1->ISR & ADC_ISR_ADRDY));
     ADC1->CR |= ADC_CR_ADSTART;
     while (!(ADC1->ISR & ADC_ISR_EOC));
+    delay_cycles(2000);
     block->block_x = ADC1->DR / 17 ;
 
     ADC1->CHSELR = 0;
@@ -134,6 +145,7 @@ void read_adc(Block* block) {
     while (!(ADC1->ISR & ADC_ISR_ADRDY));
     ADC1->CR |= ADC_CR_ADSTART;
     while (!(ADC1->ISR & ADC_ISR_EOC));
+    delay_cycles(2000);
     block->block_y = ADC1->DR / 8;
 }
 
