@@ -374,37 +374,45 @@ void CleanScreen() {
   }
 }
 
+void push_button_init() {
+  RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+  GPIOC->MODER &= ~(GPIO_MODER_MODER2|GPIO_MODER_MODER3 | GPIO_MODER_MODER4 | GPIO_MODER_MODER5);
+  GPIOC->PUPDR |= GPIO_PUPDR_PUPDR2_1 | GPIO_PUPDR_PUPDR3_1 | GPIO_PUPDR_PUPDR4_1 | GPIO_PUPDR_PUPDR5_1;
+}
+
+uint16_t get_pin(uint8_t io) {
+	return GPIOC->IDR & (GPIO_IDR_2 << io);
+}
+
 int main(void) {
   SPI_INIT();
-
   CleanScreen();
 
-  Block *block = block_init(100, 100, 10, 0xFF00);
-
-
+  Block *block = block_init(100, 100, 10, 10 , 0xFF00);
   adc_init();
+
   // FIXME Determine proper init values for displacemen!
   Displacement *disp = create_displacement(0, 0);
   uint16_t i = 0;
 
+  delay_cycles(20000);
+
+  push_button_init();
+  show_block(block);
   while (1) {
-	  delay_cycles(2000000);
-
-	  read_adc(disp);
-	  if (disp->x_changed == CHANGED) {
-		  disp->x_changed = NON_CHANGED;
-		  assert(disp->x_direction == LEFT || disp->x_direction == RIGHT);
-		  //for(i = 0; i < disp->x_diff; i++) {
-		  //block_left_right(block, 10, disp->x_direction);
-		  //}
+	  read_adc(block);
+	  delay_cycles(500000);
+	  if (get_pin(DOWN)) {
+		  block_up_down(block, block->thick_y, DOWN);
 	  }
-
-	  if (disp->y_changed == CHANGED) {
-		  disp->y_changed = NON_CHANGED;
-		  assert(disp->y_direction == UP || disp->y_direction == DOWN);
-		  //for(i = 0; i < disp->y_diff; i++) {
-		  block_up_down(block, 10, disp->y_direction);
-		  //}
+	  if (get_pin(UP)) {
+		  block_up_down(block, block->thick_y, UP);
+	  }
+	  if (get_pin(LEFT)) {
+		  block_left_right(block, block->thick_x, LEFT);
+	  }
+	  if (get_pin(RIGHT)) {
+		  block_left_right(block, block->thick_x, RIGHT);
 	  }
   }
   return 0;

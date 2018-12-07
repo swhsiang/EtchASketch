@@ -27,5 +27,5 @@ void adc_helper_UPDN(uint16_t new_val, Displacement *disp);
 void adc_helper_RL(uint32_t new_val, Displacement *disp);
 
 void adc_init();
-void read_adc(Displacement* disp);
+void read_adc(Block* block);
 Displacement *create_displacement(uint16_t x_dir, uint16_t y_dir);

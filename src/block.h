@@ -28,7 +28,7 @@
 #define Y_AVA_MAX ((uint16_t)(ROW_NUM))
 
 typedef struct Block {
-  uint16_t block_x, block_y, thick, color;
+  uint16_t block_x, block_y, thick_x, thick_y, color;
 } Block;
 #endif
 

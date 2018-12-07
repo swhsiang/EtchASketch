@@ -102,13 +102,12 @@ void adc_init() {
   while ((ADC1->CR & ADC_CR_ADSTART))
     ;  // wait for ADCstart to be 0
   // Change the resolution to 10 instead of 12;
-  ADC1->CFGR1 |= ADC_CFGR1_CONT | ADC_CFGR1_RES_0; /* (2) */
-  // FIXME determine the sample rate of ADC
+  ADC1->CFGR1 |= ADC_CFGR1_CONT ; /* (2) */
   ADC1->SMPR |=
       ADC_SMPR1_SMPR_0 | ADC_SMPR1_SMPR_1 | ADC_SMPR1_SMPR_2; /* (4) */
 }
 
-void read_adc(Displacement* disp) {
+void read_adc(Block* block) {
 	// unselect all ADC channels
     ADC1->CHSELR = 0;
     // 1<<10;	// select channel 10
@@ -119,20 +118,9 @@ void read_adc(Displacement* disp) {
     ADC1->CR |= ADC_CR_ADSTART;
     // wait for end of conversion
     while (!(ADC1->ISR & ADC_ISR_EOC));
-    adc_helper_UPDN(ADC1->DR, disp);
+    block->color = (ADC1->DR) % (0xFFFF);
 
-    // 1. CHECK IF THE DATA REGISTER HAS CHANGED BY 2^n / (ROW_NUM OR COL_NUM)
-    // (THIS CAN BE IN THE POSITIVE OR NEGATIVE DIRECTIONS)
-    // 2. IF IT HAS, INITIATE THE SOFTWARE TRIGGER AND CALL THE DISPLAY FUNCTION
-    // 3. CALCULATE THE DISTANCE MOVED BY SUBTRACTING THE VALUE WITHIN THE DATA
-    // REGISTER BY THE PREVIOUS VALUE RECORDED QUESTION: IS THIS VALUE ALWAYS
-    // GOING TO BE 2^n / (ROW_NUM OR COL_NUM) AND IS THIS STEP NECESSARY?
-    // 4. THE VALUE IN STEP 3 MUST BE THEN DIVIDED BY THE MINIMUM VALUE NEEDED
-    // TO UPDATE THE SCREEN 2^n / (ROW_NUM OR COL_NUM) PERHAPS THE DISTANCE SENT
-    // TO DAVIDS FUNCITON IS ALWAYS GOING TO BE 1. IT IS STILL NECESSARY TO FIND
-    // THE DIFFERENCE BETWEEN THE DATA REGISTER AND ITS PREVIOUS VALUE
-    // This function will hopefully find the difference between the data
-    // register and its previous value
+
     ADC1->CHSELR = 0;                    // unselect all ADC channels
     ADC1->CHSELR |= ADC_CHSELR_CHSEL11;  // 1<<11;	// select channel 11
     while (!(ADC1->ISR & ADC_ISR_ADRDY))
@@ -142,7 +130,8 @@ void read_adc(Displacement* disp) {
       ;  // wait for end of conversion
     // This function will hopefully find the difference between the data
     // register and its previous value
-    adc_helper_RL(ADC1->DR, disp);
+    block->color = (block->color * ADC1->DR) % (0xFFFF);
+
 }
 
 void displacement_init(Displacement *disp) {
