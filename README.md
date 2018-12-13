@@ -1,5 +1,9 @@
 # Etch A Sketch
 
+# Demo
+
+[YouTube](https://www.youtube.com/watch?v=5o0ZNnvpwbM)
+
 # Contribution
 * Harsh <patel743@purdue.edu>
 * Colin <unscspartan343@gmail.com>
