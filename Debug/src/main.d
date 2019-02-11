@@ -1,4 +1,5 @@
-src/main.o: ../src/main.c \
+src/main.o: ../src/main.c ../src/block.h \
+ /Users/hsiang/workspace/project/eclipse-workspace/etch_a_sketch/Utilities/stm32f0_discovery.h \
  /Users/hsiang/workspace/project/eclipse-workspace/etch_a_sketch/CMSIS/device/stm32f0xx.h \
  /Users/hsiang/workspace/project/eclipse-workspace/etch_a_sketch/CMSIS/core/core_cm0.h \
  /Users/hsiang/workspace/project/eclipse-workspace/etch_a_sketch/CMSIS/core/core_cmInstr.h \
@@ -25,7 +26,11 @@ src/main.o: ../src/main.c \
  /Users/hsiang/workspace/project/eclipse-workspace/etch_a_sketch/StdPeriph_Driver/inc/stm32f0xx_usart.h \
  /Users/hsiang/workspace/project/eclipse-workspace/etch_a_sketch/StdPeriph_Driver/inc/stm32f0xx_wwdg.h \
  /Users/hsiang/workspace/project/eclipse-workspace/etch_a_sketch/StdPeriph_Driver/inc/stm32f0xx_misc.h \
- /Users/hsiang/workspace/project/eclipse-workspace/etch_a_sketch/Utilities/stm32f0_discovery.h
+ ../src/potentiometer.h
+
+../src/block.h:
+
+/Users/hsiang/workspace/project/eclipse-workspace/etch_a_sketch/Utilities/stm32f0_discovery.h:
 
 /Users/hsiang/workspace/project/eclipse-workspace/etch_a_sketch/CMSIS/device/stm32f0xx.h:
 
@@ -79,4 +84,4 @@ src/main.o: ../src/main.c \
 
 /Users/hsiang/workspace/project/eclipse-workspace/etch_a_sketch/StdPeriph_Driver/inc/stm32f0xx_misc.h:
 
-/Users/hsiang/workspace/project/eclipse-workspace/etch_a_sketch/Utilities/stm32f0_discovery.h:
+../src/potentiometer.h:
